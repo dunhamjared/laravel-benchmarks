@@ -1,0 +1,70 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Database\Query\Builder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class Benchmarks extends Controller
+{
+
+    function SQLServer(){
+        
+        $queries = [];
+        
+        $queries[] = DB::table('users')->orderBy('email', 'desc');
+        $queries[] = DB::table('users');
+        $queries[] = 'select * from [users] order by (SELECT 0) offset ? rows fetch next ? rows only';
+        
+        $results = [];
+        
+        $number_of_users = 10000;
+        $per_page = 10;
+        $pages = $number_of_users / $per_page;
+        
+        shuffle($queries);
+        
+        foreach($queries as $query){
+            
+            $query_times = collect();
+    
+            for($page = 0; $page < $pages; $page++) {
+                
+                $skip = $page * $per_page;
+                
+                if($query instanceof Builder){
+                    
+                    $time_start = microtime(true);
+                    $query->skip($skip)->take($per_page)->get();
+                    $time_end = microtime(true);
+                    
+                } else {
+                    
+                    $time_start = microtime(true);
+                    DB::select($query, [$skip, $per_page]);
+                    $time_end = microtime(true);
+                    
+                }
+             
+                $query_times->add($time_end - $time_start);
+                
+            }
+            
+            $results[] = [
+                'sql' => $query instanceof Builder ? $query->toSql() : $query,
+                'results_avg' =>  $query_times->average(),
+                'results_max' =>  $query_times->max(),
+                'results_min' =>  $query_times->min(),
+                'results_median' =>  $query_times->median(),
+                'results_total' =>  $query_times->sum(),
+                'results' =>  $query_times,
+            ];
+            
+        }
+        
+        dd($results);
+        
+    }
+    
+}
