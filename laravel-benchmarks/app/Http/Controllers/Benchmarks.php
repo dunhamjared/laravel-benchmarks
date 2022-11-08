@@ -17,7 +17,7 @@ class Benchmarks extends Controller
         $queries[] = DB::table('users');
         $queries[] = 'select * from [users] order by (SELECT 0) offset ? rows fetch next ? rows only';
         
-        $results = [];
+        $results = collect();
         
         $number_of_users = 10000;
         $per_page = 10;
@@ -36,13 +36,13 @@ class Benchmarks extends Controller
                 if($query instanceof Builder){
                     
                     $time_start = microtime(true);
-                    $query->skip($skip)->take($per_page)->get();
+                    $throwaway = $query->skip($skip)->take($per_page)->get();
                     $time_end = microtime(true);
                     
                 } else {
                     
                     $time_start = microtime(true);
-                    DB::select($query, [$skip, $per_page]);
+                    $throwaway = DB::select($query, [$skip, $per_page]);
                     $time_end = microtime(true);
                     
                 }
@@ -51,19 +51,18 @@ class Benchmarks extends Controller
                 
             }
             
-            $results[] = [
+            $results->add([
                 'sql' => $query instanceof Builder ? $query->toSql() : $query,
-                'results_avg' =>  $query_times->average(),
-                'results_max' =>  $query_times->max(),
-                'results_min' =>  $query_times->min(),
-                'results_median' =>  $query_times->median(),
-                'results_total' =>  $query_times->sum(),
-                'results' =>  $query_times,
-            ];
+                'avg' => $query_times->average(),
+                'max' => $query_times->max(),
+                'min' => $query_times->min(),
+                'median' => $query_times->median(),
+                'total' => $query_times->sum(),
+            ]);
             
         }
         
-        dd($results);
+        return response()->view('benchmarks', ['results' => $results]);
         
     }
     
