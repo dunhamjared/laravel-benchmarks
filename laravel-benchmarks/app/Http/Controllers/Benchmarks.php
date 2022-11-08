@@ -36,13 +36,13 @@ class Benchmarks extends Controller
                 if($query instanceof Builder){
                     
                     $time_start = microtime(true);
-                    $throwaway = $query->skip($skip)->take($per_page)->get();
+                    $query->skip($skip)->take($per_page)->get();
                     $time_end = microtime(true);
                     
                 } else {
                     
                     $time_start = microtime(true);
-                    $throwaway = DB::select($query, [$skip, $per_page]);
+                    DB::select($query, [$skip, $per_page]);
                     $time_end = microtime(true);
                     
                 }
